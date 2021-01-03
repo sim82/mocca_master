@@ -2,8 +2,20 @@
 
 use smart_leds::RGB8;
 
+pub mod bitzet;
+pub mod math;
+
 pub mod setup {
-    use hal::{delay::Delay, gpio::GpioExt, prelude::*, rcc::RccExt, spi::Spi};
+
+    use core::convert::Infallible;
+
+    use hal::{
+        delay::Delay,
+        gpio::{gpioc::PC13, GpioExt, Input, PullUp},
+        prelude::*,
+        rcc::RccExt,
+        spi::Spi,
+    };
     use smart_leds::{SmartLedsWrite, RGB8};
     use stm32l4xx_hal as hal;
     use ws2812::Ws2812;
@@ -57,6 +69,84 @@ pub mod setup {
             None
         }
     }
+
+    // struct Periphery<SPI> {
+    //     ws: Ws2812<SPI>,
+    //     delay: Delay,
+    //     button: PC13<Input<PullUp>>,
+    // }
+
+    // impl<SPI> Periphery<SPI> {
+    //     pub fn setup() -> Option<Periphery<SPI>>
+    //     where
+    //         SPI: hal::hal::spi::FullDuplex<u8, Error = hal::spi::Error>,
+    //     {
+    //         if let (Some(p), Some(cp)) = (
+    //             hal::stm32::Peripherals::take(),
+    //             cortex_m::peripheral::Peripherals::take(),
+    //         ) {
+    //             // Constrain clocking registers
+    //             let mut flash = p.FLASH.constrain();
+    //             let mut rcc = p.RCC.constrain();
+    //             let mut pwr = p.PWR.constrain(&mut rcc.apb1r1);
+    //             let clocks = rcc // full speed (64 & 80MHz) use the 16MHZ HSI osc + PLL (but slower / intermediate values need MSI)
+    //                 .cfgr
+    //                 .sysclk(80.mhz())
+    //                 .pclk1(80.mhz())
+    //                 .pclk2(80.mhz())
+    //                 .freeze(&mut flash.acr, &mut pwr);
+
+    //             let mut gpioa = p.GPIOA.split(&mut rcc.ahb2);
+
+    //             // Get delay provider
+    //             let mut delay = Delay::new(cp.SYST, clocks);
+
+    //             // Configure pins for SPI
+    //             let (sck, miso, mosi) = cortex_m::interrupt::free(move |cs| {
+    //                 (
+    //                     gpioa.pa5.into_af5(&mut gpioa.moder, &mut gpioa.afrl),
+    //                     gpioa.pa6.into_af5(&mut gpioa.moder, &mut gpioa.afrl),
+    //                     gpioa.pa7.into_af5(&mut gpioa.moder, &mut gpioa.afrl),
+    //                 )
+    //             });
+
+    //             // Configure SPI with 3Mhz rate
+    //             let spi = Spi::spi1(
+    //                 p.SPI1,
+    //                 (sck, miso, mosi),
+    //                 ws2812::MODE,
+    //                 3_000_000.hz(),
+    //                 clocks,
+    //                 &mut rcc.apb2,
+    //             );
+    //             let mut ws = Ws2812::new(spi);
+    //             let mut gpioc = p.GPIOC.split(&mut rcc.ahb2);
+    //             let button = gpioc
+    //                 .pc13
+    //                 .into_pull_up_input(&mut gpioc.moder, &mut gpioc.pupdr);
+    //             Some(Periphery { ws, delay, button })
+    //         } else {
+    //             None
+    //         }
+    //     }
+    // }
+}
+
+pub mod io {
+    use core::convert::Infallible;
+    use embedded_hal::prelude::*;
+    use stm32l4xx_hal::{delay::Delay, prelude::InputPin};
+
+    pub fn button_wait_debounced<B: InputPin<Error = Infallible>>(button: &B, delay: &mut Delay) {
+        const DEBOUNCE_TIME: [u8; 5] = [100, 30, 30, 30, 30];
+        while button.is_high().unwrap() {}
+        for i in DEBOUNCE_TIME.iter() {
+            delay.delay_ms(*i as u8);
+            if button.is_high().unwrap() {
+                break;
+            }
+        }
+    }
 }
 pub const NUM_LEDS: usize = 291;
 const MATRIX_MAP: [i16; 21 * 19] = [
@@ -93,14 +183,64 @@ pub fn set_matrix(
     y: usize,
     color: RGB8,
     data: &mut [RGB8; NUM_LEDS],
-) -> Result<(), Error> {
+) -> Result<i16, Error> {
+    if x >= MATRIX_WIDTH || y >= MATRIX_HEIGHT {
+        return Err(Error::OutOfBounds);
+    }
     let addr = x + y * MATRIX_WIDTH;
     let led = MATRIX_MAP.get(addr).ok_or(Error::OutOfBounds)?;
     let rgb = data.get_mut(*led as usize).ok_or(Error::OutOfBounds)?;
     *rgb = color;
-    Ok(())
+    Ok(*led)
+}
+pub mod color {
+    use smart_leds::RGB8;
+
+    pub struct Rainbow {
+        pos: u8,
+        step: u8,
+    }
+
+    impl Default for Rainbow {
+        fn default() -> Self {
+            Rainbow { pos: 0, step: 1 }
+        }
+    }
+
+    impl Rainbow {
+        pub fn step(step: u8) -> Self {
+            Rainbow { pos: 0, step }
+        }
+    }
+
+    impl Iterator for Rainbow {
+        type Item = RGB8;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            let c = wheel(self.pos);
+            self.pos = self.pos.overflowing_add(self.step).0;
+            Some(c)
+        }
+    }
+    /// Input a value 0 to 255 to get a color value
+    /// The colours are a transition r - g - b - back to r.
+    pub fn wheel(mut wheel_pos: u8) -> RGB8 {
+        wheel_pos = 255 - wheel_pos;
+        if wheel_pos < 85 {
+            return (255 - wheel_pos * 3, 0, wheel_pos * 3).into();
+        }
+        if wheel_pos < 170 {
+            wheel_pos -= 85;
+            return (0, wheel_pos * 3, 255 - wheel_pos * 3).into();
+        }
+        wheel_pos -= 170;
+        (wheel_pos * 3, 255 - wheel_pos * 3, 0).into()
+    }
 }
 
 pub mod prelude {
-    pub use super::{set_matrix, setup::setup_simple, MATRIX_HEIGHT, MATRIX_WIDTH, NUM_LEDS};
+    pub use super::{
+        color::Rainbow, io::button_wait_debounced, set_matrix, setup::setup_simple, MATRIX_HEIGHT,
+        MATRIX_WIDTH, NUM_LEDS,
+    };
 }

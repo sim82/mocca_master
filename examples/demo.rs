@@ -1,6 +1,6 @@
 #![no_main]
 #![no_std]
-use mocca_matrix::prelude::*;
+use mocca_matrix::{color::wheel, prelude::*};
 use stm32l4xx_hal as hal;
 use ws2812_spi as ws2812;
 #[macro_use]
@@ -30,6 +30,10 @@ fn main() -> ! {
             .pclk1(80.mhz())
             .pclk2(80.mhz())
             .freeze(&mut flash.acr, &mut pwr);
+
+        // let clocks = rcc // full speed (64 & 80MHz) use the 16MHZ HSI osc + PLL (but slower / intermediate values need MSI)
+        //     .cfgr
+        //     .freeze(&mut flash.acr, &mut pwr);
 
         let mut gpioa = p.GPIOA.split(&mut rcc.ahb2);
 
@@ -219,7 +223,7 @@ fn main() -> ! {
                             // prev = cur;
                             // ws.write(data.iter().cloned()).unwrap();
                             ws.write(brightness(data.iter().cloned(), 32)).unwrap();
-                            delay.delay_ms(8u8);
+                            // delay.delay_ms(8u8);
                             // ws.write(black.iter().cloned()).unwrap();
                         }
                     }
@@ -244,48 +248,6 @@ fn main() -> ! {
     loop {
         continue;
     }
-}
-
-struct Rainbow {
-    pos: u8,
-    step: u8,
-}
-
-impl Default for Rainbow {
-    fn default() -> Self {
-        Rainbow { pos: 0, step: 1 }
-    }
-}
-
-impl Rainbow {
-    pub fn step(step: u8) -> Self {
-        Rainbow { pos: 0, step }
-    }
-}
-
-impl Iterator for Rainbow {
-    type Item = RGB8;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let c = wheel(self.pos);
-        self.pos = self.pos.overflowing_add(self.step).0;
-        Some(c)
-    }
-}
-
-/// Input a value 0 to 255 to get a color value
-/// The colours are a transition r - g - b - back to r.
-fn wheel(mut wheel_pos: u8) -> RGB8 {
-    wheel_pos = 255 - wheel_pos;
-    if wheel_pos < 85 {
-        return (255 - wheel_pos * 3, 0, wheel_pos * 3).into();
-    }
-    if wheel_pos < 170 {
-        wheel_pos -= 85;
-        return (0, wheel_pos * 3, 255 - wheel_pos * 3).into();
-    }
-    wheel_pos -= 170;
-    (wheel_pos * 3, 255 - wheel_pos * 3, 0).into()
 }
 
 #[exception]

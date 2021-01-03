@@ -1,5 +1,7 @@
 #![no_main]
 #![no_std]
+use core::convert::Infallible;
+
 use mocca_matrix::prelude::*;
 use stm32l4xx_hal as hal;
 use ws2812_spi as ws2812;
@@ -59,27 +61,54 @@ fn main() -> ! {
             .into_pull_up_input(&mut gpioc.moder, &mut gpioc.pupdr);
         let mut ws = Ws2812::new(spi);
 
-        let colors = [
-            RGB8::new(255, 0, 0),
-            RGB8::new(0, 255, 0),
-            RGB8::new(0, 0, 255),
-        ];
+        enum Mode {
+            WhiteAllUp,
+            WhiteAddOne,
+        }
+        match Mode::WhiteAddOne {
+            Mode::WhiteAllUp => {
+                let colors = [
+                    RGB8::new(255, 0, 0),
+                    RGB8::new(0, 255, 0),
+                    RGB8::new(0, 0, 255),
+                ];
 
-        let colors = [10, 32, 64, 96, 128, 160, 192, 200, 224, 255];
-        let colors = [255];
-        let mut gamma = 15;
+                let colors = [10, 32, 64, 96, 128, 160, 192, 200, 224, 255];
+                let colors = [255];
+                let mut gamma = 15;
 
-        for color in colors.iter().cycle() {
-            let mut data = [RGB8::new(*color, *color, *color); NUM_LEDS];
+                for color in colors.iter().cycle() {
+                    let mut data = [RGB8::new(*color, *color, *color); NUM_LEDS];
 
-            ws.write(brightness(data.iter().cloned(), gamma)).unwrap();
+                    ws.write(brightness(data.iter().cloned(), gamma)).unwrap();
 
-            while button.is_high().unwrap() {}
-            while button.is_low().unwrap() {}
-            gamma += 16;
+                    while button.is_high().unwrap() {}
+                    while button.is_low().unwrap() {}
+                    gamma += 16;
+                }
+            }
+            Mode::WhiteAddOne => loop {
+                let mut data = [RGB8::default(); NUM_LEDS];
+                ws.write(data.iter().cloned()).unwrap();
+                while button.is_high().unwrap() {}
+                while button.is_low().unwrap() {}
+                for i in 0..NUM_LEDS {
+                    data[i] = RGB8::new(255, 255, 255);
+                    ws.write(data.iter().cloned()).unwrap();
+                    // while button.is_high().unwrap() {}
+
+                    button_wait_debounced(&button, &mut delay);
+                    // for i in [100, 30, 30, 30, 30].iter() {
+                    //     delay.delay_ms(*i as u8);
+                    //     if button.is_high().unwrap() {
+                    //         break;
+                    //     }
+                    // }
+                    // while button.is_low().unwrap() {}
+                }
+            },
         }
     }
-
     unreachable!();
 }
 
