@@ -5,6 +5,7 @@
 
 use core::convert::Infallible;
 
+use hal::gpio::PullUp;
 use mocca_matrix::{bitzet::Bitzet, prelude::*};
 use stm32l4xx_hal as hal;
 use ws2812_spi as ws2812;
@@ -67,7 +68,7 @@ fn main() -> ! {
         let mut ws = Ws2812::new(spi);
         let mut data = [RGB8::new(255, 255, 255); NUM_LEDS];
         let mut rainbow = Rainbow::step(1);
-        for _ in 0..0 {
+        for _ in 0..1 {
             let up = 0..MATRIX_WIDTH;
             let down = (0..MATRIX_WIDTH).rev();
             let pause = core::iter::repeat(20).take(100);
@@ -124,7 +125,7 @@ fn main() -> ! {
         delay.delay_ms(200u8);
         ws.write(brightness(data.iter().cloned(), 0)).unwrap();
         // button_wait_debounced(&button, &mut delay);
-        run(&mut ws, &mut delay);
+        run(&mut ws, &mut delay, &button);
         let mut data = [RGB8::new(255, 0, 0); NUM_LEDS];
         ws.write(brightness(data.iter().cloned(), 32)).unwrap();
     }
@@ -157,6 +158,7 @@ fn adjacent(v: Vec2) -> [Vec2; 6] {
 fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
     ws: &mut WS,
     delay: &mut Delay,
+    button: &dyn InputPin<Error = Infallible>,
 ) -> Result<(), mocca_matrix::Error> {
     let mut data = [RGB8::default(); NUM_LEDS];
     let mut black = Bitzet::new();
@@ -234,7 +236,8 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
     let mut i: usize = 0;
     let mut turn_off = [true; NUM_LEDS];
     loop {
-        if i % 25 == 0 {
+        let warp_mode = button.is_low().unwrap();
+        if i % 25 == 0 || warp_mode {
             let mut rainbow = Rainbow::step(7);
 
             if true {
@@ -270,7 +273,11 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
                     // }
                 }
             }
+
             turn_off.fill(true);
+            if warp_mode {
+                data.fill(RGB8::default());
+            }
             for v in black.iter() {
                 if let Ok(addr) = set_matrix(
                     (v.x() + 10) as usize,
@@ -284,11 +291,13 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
         }
         i = i.overflowing_add(1).0;
 
-        for (i, b) in turn_off.iter().enumerate() {
-            if *b {
-                let v = &mut data[i];
-                let old = [v.clone(); 1];
-                *v = brightness(old.iter().cloned(), 220).next().unwrap();
+        if button.is_high().unwrap() {
+            for (i, b) in turn_off.iter().enumerate() {
+                if *b {
+                    let v = &mut data[i];
+                    let old = [v.clone(); 1];
+                    *v = brightness(old.iter().cloned(), 220).next().unwrap();
+                }
             }
         }
         // data.iter_mut().for_each(|v| {
