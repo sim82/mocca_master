@@ -65,7 +65,7 @@ fn main() -> ! {
             WhiteAllUp,
             WhiteAddOne,
         }
-        match Mode::WhiteAddOne {
+        match Mode::WhiteAllUp {
             Mode::WhiteAllUp => {
                 let colors = [
                     RGB8::new(255, 0, 0),
@@ -82,8 +82,7 @@ fn main() -> ! {
 
                     ws.write(brightness(data.iter().cloned(), gamma)).unwrap();
 
-                    while button.is_high().unwrap() {}
-                    while button.is_low().unwrap() {}
+                    button_wait_debounced(&button, &mut delay);
                     gamma += 16;
                 }
             }

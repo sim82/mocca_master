@@ -1,9 +1,12 @@
 #![no_std]
-
+#![feature(min_const_generics)]
 use smart_leds::RGB8;
 
 pub mod bitzet;
+pub mod effects;
 pub mod math;
+
+pub use stm32l4xx_hal as hal;
 
 pub mod setup {
 
@@ -193,6 +196,18 @@ pub fn set_matrix(
     *rgb = color;
     Ok(*led)
 }
+
+pub fn get_matrix(x: usize, y: usize, data: &mut [RGB8; NUM_LEDS]) -> Result<(i16, RGB8), Error> {
+    if x >= MATRIX_WIDTH || y >= MATRIX_HEIGHT {
+        return Err(Error::OutOfBounds);
+    }
+    let addr = x + y * MATRIX_WIDTH;
+    let led = MATRIX_MAP.get(addr).ok_or(Error::OutOfBounds)?;
+    Ok((
+        *led,
+        data.get(*led as usize).cloned().ok_or(Error::OutOfBounds)?,
+    ))
+}
 pub mod color {
     use smart_leds::RGB8;
 
@@ -240,7 +255,7 @@ pub mod color {
 
 pub mod prelude {
     pub use super::{
-        color::Rainbow, io::button_wait_debounced, set_matrix, setup::setup_simple, MATRIX_HEIGHT,
-        MATRIX_WIDTH, NUM_LEDS,
+        color::Rainbow, effects, get_matrix, hal, io::button_wait_debounced, set_matrix,
+        setup::setup_simple, MATRIX_HEIGHT, MATRIX_WIDTH, NUM_LEDS,
     };
 }

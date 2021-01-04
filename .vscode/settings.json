@@ -1,4 +1,7 @@
 {
     "rust-client.engine": "rls",
     "rust.target": "thumbv7em-none-eabihf",
+    "rust-analyzer.cargo.target": "thumbv7em-none-eabihf",
+    //"rust-analyzer.checkOnSave.allTargets": false,
+    "rust-analyzer.checkOnSave.target": "thumbv7em-none-eabihf",
 }
