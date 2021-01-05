@@ -5,7 +5,7 @@
 
 use core::convert::Infallible;
 
-use hal::gpio::PullUp;
+use hal::gpio::{Input, PullUp};
 use mocca_matrix::{bitzet::Bitzet, prelude::*};
 use stm32l4xx_hal as hal;
 use ws2812_spi as ws2812;
@@ -82,14 +82,14 @@ fn main() -> ! {
 }
 
 fn adjacent(v: Vec2) -> [Vec2; 6] {
-    let xshift = v.y().abs() % 2;
+    let xshift = v.y.abs() % 2;
     let mut d = [
-        Vec2(1, 0),
-        Vec2(-1, 0),
-        Vec2(-1 + xshift, 1),
-        Vec2(0 + xshift, 1),
-        Vec2(-1 + xshift, -1),
-        Vec2(0 + xshift, -1),
+        Vec2::new(1, 0),
+        Vec2::new(-1, 0),
+        Vec2::new(-1 + xshift, 1),
+        Vec2::new(0 + xshift, 1),
+        Vec2::new(-1 + xshift, -1),
+        Vec2::new(0 + xshift, -1),
     ];
 
     d.iter_mut().for_each(|f| *f = *f + v);
@@ -168,10 +168,10 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
         }
         reset_prev(prev, &mut data);
 
-        if black.contains(&Vec2(x, y)) {
-            black.remove(&Vec2(x, y));
+        if black.contains(&Vec2 { x, y }) {
+            black.remove(&Vec2 { x, y });
         } else {
-            black.insert(Vec2(x, y));
+            black.insert(Vec2 { x, y });
         }
         set_matrix(
             (x + 10) as usize,
@@ -219,7 +219,7 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
             let white = white.difference(&black);
             for v in white.iter() {
                 let n = adjacent(v).iter().filter(|v| black.contains(*v)).count();
-                if n == 2 && v.x().abs() < 15 && v.y().abs() < 15 {
+                if n == 2 && v.x.abs() < 15 && v.y.abs() < 15 {
                     black_new.insert(v);
                 }
             }
@@ -233,8 +233,8 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
             }
             for v in black.iter() {
                 if let Ok(addr) = set_matrix(
-                    (v.x() + 10) as usize,
-                    (v.y() + 10) as usize,
+                    (v.x + 10) as usize,
+                    (v.y + 10) as usize,
                     rainbow.next().unwrap(),
                     &mut data,
                 ) {

@@ -47,10 +47,10 @@ impl<'a, const N: usize> Iterator for ZOrderIterator<'a, N> {
         let ret = zorder_inverse(self.z as u32);
         self.z += 1;
         match self.quadrant {
-            0 => Some(Vec2(ret.0, ret.1)),
-            1 => Some(Vec2(-ret.0, ret.1)),
-            2 => Some(Vec2(ret.0, -ret.1)),
-            3 => Some(Vec2(-ret.0, -ret.1)),
+            0 => Some(Vec2::new(ret.x, ret.y)),
+            1 => Some(Vec2::new(-ret.x, ret.y)),
+            2 => Some(Vec2::new(ret.x, -ret.y)),
+            3 => Some(Vec2::new(-ret.x, -ret.y)),
             _ => None,
         }
     }
@@ -66,9 +66,9 @@ impl<const N: usize> FromIterator<Vec2> for Bitzet<N> {
 #[test]
 fn test_iter_basic() {
     let mut bs = Bitzet::new();
-    bs.insert(Vec2(1, 1));
-    bs.insert(Vec2(2, 1));
-    bs.insert(Vec2(3, 1));
+    bs.insert(Vec2::new(1, 1));
+    bs.insert(Vec2::new(2, 1));
+    bs.insert(Vec2::new(3, 1));
 
     let mut bs2 = Bitzet::new();
     bs2.insert(Vec2(2, 1));
@@ -80,23 +80,23 @@ fn test_iter_basic() {
 #[test]
 fn test_iter_4q() {
     let mut bs = Bitzet::new();
-    bs.insert(Vec2(1, 1));
-    bs.insert(Vec2(2, 1));
-    bs.insert(Vec2(3, 1));
+    bs.insert(Vec2::new(1, 1));
+    bs.insert(Vec2::new(2, 1));
+    bs.insert(Vec2::new(3, 1));
 
-    bs.insert(Vec2(-5, 2));
-    bs.insert(Vec2(3, -7));
-    bs.insert(Vec2(-12, -13));
+    bs.insert(Vec2::new(-5, 2));
+    bs.insert(Vec2::new(3, -7));
+    bs.insert(Vec2::new(-12, -13));
 
-    bs.insert(Vec2(-5, 1));
-    bs.insert(Vec2(2, -7));
-    bs.insert(Vec2(-11, -13));
+    bs.insert(Vec2::new(-5, 1));
+    bs.insert(Vec2::new(2, -7));
+    bs.insert(Vec2::new(-11, -13));
 
     let mut bs2 = Bitzet::new();
-    bs2.insert(Vec2(2, 1));
-    bs2.insert(Vec2(-5, 2));
-    bs2.insert(Vec2(3, -7));
-    bs2.insert(Vec2(-12, -13));
+    bs2.insert(Vec2::new(2, 1));
+    bs2.insert(Vec2::new(-5, 2));
+    bs2.insert(Vec2::new(3, -7));
+    bs2.insert(Vec2::new(-12, -13));
     let bs3 = bs.difference(&bs2);
     let s = bs3.iter().collect::<Vec<_>>();
     println!("s: {:?}", s);
@@ -162,14 +162,14 @@ impl<const N: usize> Bitzet<N> {
 fn test_len() {
     println!("z: {}", zorder(255, 255));
     let bz = [
-        Vec2(1, 1),
-        Vec2(255, 255),
-        Vec2(-1, 1),
-        Vec2(-255, 255),
-        Vec2(1, -1),
-        Vec2(255, -255),
-        Vec2(-1, -1),
-        Vec2(-255, -255),
+        Vec2::new(1, 1),
+        Vec2::new(255, 255),
+        Vec2::new(-1, 1),
+        Vec2::new(-255, 255),
+        Vec2::new(1, -1),
+        Vec2::new(255, -255),
+        Vec2::new(-1, -1),
+        Vec2::new(-255, -255),
     ]
     .iter()
     .cloned()
@@ -177,12 +177,12 @@ fn test_len() {
     assert_eq!(bz.len(), 8);
 }
 fn quadrant_index(v: &Vec2) -> usize {
-    let xneg = if v.x() < 0 { 1 } else { 0 };
-    let yneg = if v.y() < 0 { 1 } else { 0 };
+    let xneg = if v.x < 0 { 1 } else { 0 };
+    let yneg = if v.y < 0 { 1 } else { 0 };
     yneg * 2 + xneg
 }
 fn zorder_abs(v: &Vec2) -> usize {
-    zorder(v.x().abs() as u32, v.y().abs() as u32) as usize
+    zorder(v.x.abs() as u32, v.y.abs() as u32) as usize
 }
 fn zorder(mut x: u32, mut y: u32) -> u32 {
     // from https://graphics.stanford.edu/~seander/bithacks.html
@@ -228,7 +228,7 @@ fn zorder_inverse(z: u32) -> Vec2 {
     y = (y | (y >> 4)) & 0x00FF00FF;
     y = (y | (y >> 8)) & 0x0000FFFF;
 
-    Vec2(x as i32, y as i32)
+    Vec2::new(x as i32, y as i32)
 }
 
 #[test]

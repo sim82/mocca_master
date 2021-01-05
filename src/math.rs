@@ -1,42 +1,42 @@
 use core::ops;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct Vec2(pub i32, pub i32);
+pub struct Vec2 {
+    pub x: i32,
+    pub y: i32,
+}
 
 impl Vec2 {
-    pub fn x(&self) -> i32 {
-        self.0
-    }
-    pub fn y(&self) -> i32 {
-        self.1
+    pub fn new(x: i32, y: i32) -> Vec2 {
+        Vec2 { x, y }
     }
     pub fn manhattan(&self) -> i32 {
-        self.x().abs() + self.y().abs()
+        self.x.abs() + self.y.abs()
     }
     pub fn rotate_right90(&self) -> Vec2 {
         // matrix:
         // x      0       -1
         // y      1        0
-        Vec2(self.1, -self.0)
+        Vec2::new(self.y, -self.x)
     }
     pub fn rotate_left90(&self) -> Vec2 {
         // matrix:
         // x       0       1
         // y      -1       0
-        Vec2(-self.1, self.0)
+        Vec2::new(-self.y, self.x)
     }
 }
 
 impl ops::Add for Vec2 {
     type Output = Vec2;
     fn add(self, rhs: Self) -> Self::Output {
-        Vec2(self.0 + rhs.0, self.1 + rhs.1)
+        Vec2::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
 impl ops::AddAssign for Vec2 {
     fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-        self.1 += rhs.1;
+        self.x += rhs.x;
+        self.y += rhs.y;
     }
 }
 
@@ -44,29 +44,29 @@ impl ops::Mul<i32> for Vec2 {
     type Output = Vec2;
 
     fn mul(self, rhs: i32) -> Self::Output {
-        Vec2(self.0 * rhs, self.1 * rhs)
+        Vec2::new(self.x * rhs, self.y * rhs)
     }
 }
 
 impl ops::MulAssign<i32> for Vec2 {
     fn mul_assign(&mut self, rhs: i32) {
-        self.0 *= rhs;
-        self.1 *= rhs;
+        self.x *= rhs;
+        self.y *= rhs;
     }
 }
 
 impl From<(i32, i32)> for Vec2 {
     fn from(v: (i32, i32)) -> Self {
-        Vec2(v.0, v.1)
+        Vec2::new(v.0, v.1)
     }
 }
 impl From<char> for Vec2 {
     fn from(c: char) -> Self {
         match c {
-            'N' => Vec2(0, 1),
-            'S' => Vec2(0, -1),
-            'E' => Vec2(1, 0),
-            'W' => Vec2(-1, 0),
+            'N' => Vec2::new(0, 1),
+            'S' => Vec2::new(0, -1),
+            'E' => Vec2::new(1, 0),
+            'W' => Vec2::new(-1, 0),
             _ => panic!("unhandled direction: {}", c),
         }
     }
@@ -120,34 +120,32 @@ impl From<char> for Vec2 {
 //     }
 // }
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct Vec3(pub i32, pub i32, pub i32);
+pub struct Vec3 {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+}
 impl Vec3 {
-    pub fn x(&self) -> i32 {
-        self.0
-    }
-    pub fn y(&self) -> i32 {
-        self.1
-    }
-    pub fn z(&self) -> i32 {
-        self.2
+    pub fn new(x: i32, y: i32, z: i32) -> Vec3 {
+        Vec3 { x, y, z }
     }
     pub fn manhattan(&self) -> i32 {
-        self.x().abs() + self.y().abs() + self.z().abs()
+        self.x.abs() + self.y.abs() + self.z.abs()
     }
 }
 
 impl ops::Add for Vec3 {
     type Output = Vec3;
     fn add(self, rhs: Self) -> Self::Output {
-        Vec3(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
+        Vec3::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
     }
 }
 
 impl ops::AddAssign for Vec3 {
     fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-        self.1 += rhs.1;
-        self.2 += rhs.2;
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
     }
 }
 
@@ -155,21 +153,21 @@ impl ops::Mul<i32> for Vec3 {
     type Output = Vec3;
 
     fn mul(self, rhs: i32) -> Self::Output {
-        Vec3(self.0 * rhs, self.1 * rhs, self.2 * rhs)
+        Vec3::new(self.x * rhs, self.y * rhs, self.z * rhs)
     }
 }
 
 impl ops::MulAssign<i32> for Vec3 {
     fn mul_assign(&mut self, rhs: i32) {
-        self.0 *= rhs;
-        self.1 *= rhs;
-        self.2 *= rhs;
+        self.x *= rhs;
+        self.y *= rhs;
+        self.z *= rhs;
     }
 }
 
 impl From<(i32, i32, i32)> for Vec3 {
     fn from(v: (i32, i32, i32)) -> Self {
-        Vec3(v.0, v.1, v.2)
+        Vec3::new(v.0, v.1, v.2)
     }
 }
 // #[cfg(test)]
@@ -213,43 +211,40 @@ impl From<(i32, i32, i32)> for Vec3 {
 // }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct Vec4(pub i32, pub i32, pub i32, pub i32);
+pub struct Vec4 {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+    pub w: i32,
+}
 impl Vec4 {
-    pub fn x(&self) -> i32 {
-        self.0
+    pub fn new(x: i32, y: i32, z: i32, w: i32) -> Vec4 {
+        Vec4 { x, y, z, w }
     }
-    pub fn y(&self) -> i32 {
-        self.1
-    }
-    pub fn z(&self) -> i32 {
-        self.2
-    }
-    pub fn w(&self) -> i32 {
-        self.3
-    }
+
     pub fn manhattan(&self) -> i32 {
-        self.x().abs() + self.y().abs() + self.z().abs() + self.w().abs()
+        self.x.abs() + self.y.abs() + self.z.abs() + self.w.abs()
     }
 }
 
 impl ops::Add for Vec4 {
     type Output = Vec4;
     fn add(self, rhs: Self) -> Self::Output {
-        Vec4(
-            self.0 + rhs.0,
-            self.1 + rhs.1,
-            self.2 + rhs.2,
-            self.3 + rhs.3,
+        Vec4::new(
+            self.x + rhs.x,
+            self.y + rhs.y,
+            self.z + rhs.z,
+            self.w + rhs.w,
         )
     }
 }
 
 impl ops::AddAssign for Vec4 {
     fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-        self.1 += rhs.1;
-        self.2 += rhs.2;
-        self.3 += rhs.3;
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+        self.w += rhs.w;
     }
 }
 
@@ -257,22 +252,22 @@ impl ops::Mul<i32> for Vec4 {
     type Output = Vec4;
 
     fn mul(self, rhs: i32) -> Self::Output {
-        Vec4(self.0 * rhs, self.1 * rhs, self.2 * rhs, self.3 * rhs)
+        Vec4::new(self.x * rhs, self.y * rhs, self.z * rhs, self.w * rhs)
     }
 }
 
 impl ops::MulAssign<i32> for Vec4 {
     fn mul_assign(&mut self, rhs: i32) {
-        self.0 *= rhs;
-        self.1 *= rhs;
-        self.2 *= rhs;
-        self.3 *= rhs;
+        self.x *= rhs;
+        self.y *= rhs;
+        self.z *= rhs;
+        self.w *= rhs;
     }
 }
 
 impl From<(i32, i32, i32, i32)> for Vec4 {
     fn from(v: (i32, i32, i32, i32)) -> Self {
-        Vec4(v.0, v.1, v.2, v.3)
+        Vec4::new(v.0, v.1, v.2, v.3)
     }
 }
 // #[cfg(test)]
