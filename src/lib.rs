@@ -14,12 +14,13 @@ pub mod setup {
 
     use hal::{
         delay::Delay,
-        gpio::{gpioc::PC13, GpioExt, Input, PullUp},
+        gpio::{gpioa::PA5, gpioc::PC13, Alternate, GpioExt, Input, PullUp},
         prelude::*,
-        rcc::RccExt,
+        rcc::{RccExt, APB2},
         spi::Spi,
     };
     use smart_leds::{SmartLedsWrite, RGB8};
+    use stm32l4::stm32l4x6::SPI1;
     use stm32l4xx_hal as hal;
     use ws2812::Ws2812;
     use ws2812_spi as ws2812;
@@ -73,66 +74,52 @@ pub mod setup {
         }
     }
 
-    // struct Periphery<SPI> {
-    //     ws: Ws2812<SPI>,
-    //     delay: Delay,
-    //     button: PC13<Input<PullUp>>,
-    // }
+    pub struct Periphery {
+        pub flash: hal::flash::Parts,
+        pub pwr: hal::pwr::Pwr,
+        pub clocks: hal::rcc::Clocks,
+        pub gpioa: hal::gpio::gpioa::Parts,
+        pub gpioc: hal::gpio::gpioc::Parts,
+        pub delay: Delay,
+        pub spi1: SPI1,
+        pub apb2: APB2,
+    }
 
-    // impl<SPI> Periphery<SPI> {
-    //     pub fn setup() -> Option<Periphery<SPI>>
-    //     where
-    //         SPI: hal::hal::spi::FullDuplex<u8, Error = hal::spi::Error>,
-    //     {
-    //         if let (Some(p), Some(cp)) = (
-    //             hal::stm32::Peripherals::take(),
-    //             cortex_m::peripheral::Peripherals::take(),
-    //         ) {
-    //             // Constrain clocking registers
-    //             let mut flash = p.FLASH.constrain();
-    //             let mut rcc = p.RCC.constrain();
-    //             let mut pwr = p.PWR.constrain(&mut rcc.apb1r1);
-    //             let clocks = rcc // full speed (64 & 80MHz) use the 16MHZ HSI osc + PLL (but slower / intermediate values need MSI)
-    //                 .cfgr
-    //                 .sysclk(80.mhz())
-    //                 .pclk1(80.mhz())
-    //                 .pclk2(80.mhz())
-    //                 .freeze(&mut flash.acr, &mut pwr);
+    pub fn setup() -> Option<Periphery> {
+        if let (Some(p), Some(cp)) = (
+            hal::stm32::Peripherals::take(),
+            cortex_m::peripheral::Peripherals::take(),
+        ) {
+            // Constrain clocking registers
+            let mut flash = p.FLASH.constrain();
+            let mut rcc = p.RCC.constrain();
+            let mut pwr = p.PWR.constrain(&mut rcc.apb1r1);
+            let clocks = rcc // full speed (64 & 80MHz) use the 16MHZ HSI osc + PLL (but slower / intermediate values need MSI)
+                .cfgr
+                .sysclk(80.mhz())
+                .pclk1(80.mhz())
+                .pclk2(80.mhz())
+                .freeze(&mut flash.acr, &mut pwr);
 
-    //             let mut gpioa = p.GPIOA.split(&mut rcc.ahb2);
+            let gpioa = p.GPIOA.split(&mut rcc.ahb2);
+            let gpioc = p.GPIOC.split(&mut rcc.ahb2);
+            // Get delay provider
+            let delay = Delay::new(cp.SYST, clocks);
 
-    //             // Get delay provider
-    //             let mut delay = Delay::new(cp.SYST, clocks);
-
-    //             // Configure pins for SPI
-    //             let (sck, miso, mosi) = cortex_m::interrupt::free(move |cs| {
-    //                 (
-    //                     gpioa.pa5.into_af5(&mut gpioa.moder, &mut gpioa.afrl),
-    //                     gpioa.pa6.into_af5(&mut gpioa.moder, &mut gpioa.afrl),
-    //                     gpioa.pa7.into_af5(&mut gpioa.moder, &mut gpioa.afrl),
-    //                 )
-    //             });
-
-    //             // Configure SPI with 3Mhz rate
-    //             let spi = Spi::spi1(
-    //                 p.SPI1,
-    //                 (sck, miso, mosi),
-    //                 ws2812::MODE,
-    //                 3_000_000.hz(),
-    //                 clocks,
-    //                 &mut rcc.apb2,
-    //             );
-    //             let mut ws = Ws2812::new(spi);
-    //             let mut gpioc = p.GPIOC.split(&mut rcc.ahb2);
-    //             let button = gpioc
-    //                 .pc13
-    //                 .into_pull_up_input(&mut gpioc.moder, &mut gpioc.pupdr);
-    //             Some(Periphery { ws, delay, button })
-    //         } else {
-    //             None
-    //         }
-    //     }
-    // }
+            Some(Periphery {
+                flash,
+                pwr,
+                gpioa,
+                gpioc,
+                clocks,
+                delay,
+                spi1: p.SPI1,
+                apb2: rcc.apb2,
+            })
+        } else {
+            None
+        }
+    }
 }
 
 pub mod io {
@@ -256,6 +243,6 @@ pub mod color {
 pub mod prelude {
     pub use super::{
         color::Rainbow, effects, get_matrix, hal, io::button_wait_debounced, set_matrix,
-        setup::setup_simple, MATRIX_HEIGHT, MATRIX_WIDTH, NUM_LEDS,
+        setup::setup, setup::setup_simple, setup::Periphery, MATRIX_HEIGHT, MATRIX_WIDTH, NUM_LEDS,
     };
 }
