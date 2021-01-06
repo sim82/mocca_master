@@ -1,11 +1,13 @@
 #![no_std]
 #![feature(min_const_generics)]
+#![feature(slice_fill)]
+
 use smart_leds::RGB8;
 
 pub mod bitzet;
 pub mod effects;
+pub mod hex;
 pub mod math;
-
 pub use stm32l4xx_hal as hal;
 
 pub mod setup {
@@ -168,6 +170,12 @@ pub enum Error {
     OutOfBounds,
 }
 
+pub fn set_matrix_oddr(v: math::Vec2, color: RGB8, data: &mut [RGB8; NUM_LEDS]) {
+    match set_matrix((v.x + 10) as usize, (v.y + 10) as usize, color, data) {
+        _ => (),
+    }
+}
+
 pub fn set_matrix(
     x: usize,
     y: usize,
@@ -238,11 +246,61 @@ pub mod color {
         wheel_pos -= 170;
         (wheel_pos * 3, 255 - wheel_pos * 3, 0).into()
     }
+
+    pub const BLACK: RGB8 = RGB8 { r: 0, g: 0, b: 0 };
+    pub const RED: RGB8 = RGB8 { r: 255, g: 0, b: 0 };
+    pub const GREEN: RGB8 = RGB8 { r: 0, g: 255, b: 0 };
+    pub const BLUE: RGB8 = RGB8 { r: 0, g: 0, b: 255 };
+    pub const CYAN: RGB8 = RGB8 {
+        r: 0,
+        g: 255,
+        b: 255,
+    };
+    pub const MAGENTA: RGB8 = RGB8 {
+        r: 255,
+        g: 0,
+        b: 255,
+    };
+    pub const YELLOW: RGB8 = RGB8 {
+        r: 255,
+        g: 255,
+        b: 0,
+    };
 }
 
+pub mod canvas {
+    use smart_leds::RGB8;
+
+    use crate::{color, set_matrix_oddr, NUM_LEDS};
+
+    use super::hex;
+
+    pub trait Canvas {
+        fn clear(&mut self);
+        fn line(&mut self, a: hex::Cube, b: hex::Cube, color: RGB8);
+        fn apply(&mut self);
+    }
+
+    impl<WS: smart_leds::SmartLedsWrite<Color = RGB8>> Canvas for (WS, [RGB8; NUM_LEDS]) {
+        fn line(&mut self, a: hex::Cube, b: hex::Cube, color: RGB8) {
+            for c in hex::CubeLinedraw::new(a.into(), b.into()) {
+                set_matrix_oddr(c.into(), color, &mut self.1);
+            }
+        }
+        fn apply(&mut self) {
+            self.0
+                .write(smart_leds::brightness(self.1.iter().cloned(), 32));
+        }
+
+        fn clear(&mut self) {
+            self.1.fill(color::BLACK);
+        }
+    }
+}
 pub mod prelude {
     pub use super::{
-        color::Rainbow, effects, get_matrix, hal, io::button_wait_debounced, set_matrix,
-        setup::setup, setup::setup_simple, setup::Periphery, MATRIX_HEIGHT, MATRIX_WIDTH, NUM_LEDS,
+        canvas::Canvas, color::Rainbow, effects, get_matrix, hal, io::button_wait_debounced,
+        set_matrix, set_matrix_oddr, setup::setup, setup::setup_simple, setup::Periphery,
+        MATRIX_HEIGHT, MATRIX_WIDTH, NUM_LEDS,
     };
 }

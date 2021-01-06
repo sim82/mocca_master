@@ -71,6 +71,20 @@ impl From<char> for Vec2 {
         }
     }
 }
+impl From<super::hex::Cube> for Vec2 {
+    fn from(c: super::hex::Cube) -> Self {
+        let x = c.x + (c.z - (c.z & 1)) / 2;
+        let y = c.z;
+        Vec2 { x, y }
+    }
+}
+
+impl From<&Vec2> for Vec2 {
+    fn from(v: &Vec2) -> Self {
+        v.clone()
+    }
+}
+
 // #[cfg(test)]
 // mod test_vec2 {
 //     use super::*;
