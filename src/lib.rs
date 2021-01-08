@@ -22,7 +22,7 @@ pub mod setup {
         spi::Spi,
     };
     use smart_leds::{SmartLedsWrite, RGB8};
-    use stm32l4::stm32l4x6::{I2C1, SPI1};
+    use stm32l4::stm32l4x2::{I2C1, SPI1};
     use stm32l4xx_hal as hal;
     use ws2812::Ws2812;
     use ws2812_spi as ws2812;

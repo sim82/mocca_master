@@ -10,7 +10,7 @@ extern crate cortex_m_rt as rt;
 
 // test the memory limits. ~96K of stack and ~1M of flash, just as advertised... (takes ages to flash though)
 // the remaining 32K of sram are in a separate segment at 0x10000000
-const BIGDATA: [u8; 900 * 1024] = [32u8; 900 * 1024];
+const BIGDATA: [u8; 64 * 1024] = [32u8; 64 * 1024];
 
 fn iter(ws: &mut impl SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>, i: usize) {
     let mut data = [RGB8::default(); NUM_LEDS];

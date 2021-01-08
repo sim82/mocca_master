@@ -31,15 +31,15 @@ fn main() -> ! {
         let mut gpiob = periphery.gpiob;
 
         let mut scl = gpiob
-            .pb8
+            .pb6
             .into_open_drain_output(&mut gpiob.moder, &mut gpiob.otyper);
         scl.internal_pull_up(&mut gpiob.pupdr, true);
-        let scl = scl.into_af4(&mut gpiob.moder, &mut gpiob.afrh);
+        let scl = scl.into_af4(&mut gpiob.moder, &mut gpiob.afrl);
         let mut sda = gpiob
-            .pb9
+            .pb7
             .into_open_drain_output(&mut gpiob.moder, &mut gpiob.otyper);
         sda.internal_pull_up(&mut gpiob.pupdr, true);
-        let sda = sda.into_af4(&mut gpiob.moder, &mut gpiob.afrh);
+        let sda = sda.into_af4(&mut gpiob.moder, &mut gpiob.afrl);
 
         let mut i2c = I2c::i2c1(
             periphery.i2c1,

@@ -200,7 +200,7 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
     let mut rainbow = Rainbow::step(7);
     loop {
         let warp_mode = false; //button.is_low().unwrap();
-        let hold_mode = button.is_low().unwrap();
+        let hold_mode = false; //button.is_low().unwrap();
         if i % 25 == 0 || warp_mode {
             let mut black_new = Bitzet::new();
 
