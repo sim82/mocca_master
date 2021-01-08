@@ -18,11 +18,11 @@ pub mod setup {
         delay::Delay,
         gpio::{gpioa::PA5, gpioc::PC13, Alternate, GpioExt, Input, PullUp},
         prelude::*,
-        rcc::{RccExt, APB2},
+        rcc::{RccExt, APB1R1, APB2},
         spi::Spi,
     };
     use smart_leds::{SmartLedsWrite, RGB8};
-    use stm32l4::stm32l4x6::SPI1;
+    use stm32l4::stm32l4x6::{I2C1, SPI1};
     use stm32l4xx_hal as hal;
     use ws2812::Ws2812;
     use ws2812_spi as ws2812;
@@ -81,10 +81,13 @@ pub mod setup {
         pub pwr: hal::pwr::Pwr,
         pub clocks: hal::rcc::Clocks,
         pub gpioa: hal::gpio::gpioa::Parts,
+        pub gpiob: hal::gpio::gpiob::Parts,
         pub gpioc: hal::gpio::gpioc::Parts,
         pub delay: Delay,
         pub spi1: SPI1,
+        pub apb1r1: APB1R1,
         pub apb2: APB2,
+        pub i2c1: I2C1,
     }
 
     pub fn setup() -> Option<Periphery> {
@@ -104,6 +107,7 @@ pub mod setup {
                 .freeze(&mut flash.acr, &mut pwr);
 
             let gpioa = p.GPIOA.split(&mut rcc.ahb2);
+            let gpiob = p.GPIOB.split(&mut rcc.ahb2);
             let gpioc = p.GPIOC.split(&mut rcc.ahb2);
             // Get delay provider
             let delay = Delay::new(cp.SYST, clocks);
@@ -112,11 +116,14 @@ pub mod setup {
                 flash,
                 pwr,
                 gpioa,
+                gpiob,
                 gpioc,
                 clocks,
                 delay,
                 spi1: p.SPI1,
+                apb1r1: rcc.apb1r1,
                 apb2: rcc.apb2,
+                i2c1: p.I2C1,
             })
         } else {
             None

@@ -21,6 +21,7 @@ use micromath::F32Ext;
 fn main() -> ! {
     if let Some(mut periphery) = setup() {
         let mut gpioa = periphery.gpioa;
+        let mut gpiob = periphery.gpiob;
         let mut gpioc = periphery.gpioc;
         let (sck, miso, mosi) = cortex_m::interrupt::free(move |cs| {
             (
