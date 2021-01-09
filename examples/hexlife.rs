@@ -5,8 +5,24 @@
 
 use core::convert::Infallible;
 
-use hal::gpio::{Input, PullUp};
+use arrayvec::ArrayString;
+use embedded_graphics::{
+    drawable::Drawable,
+    fonts,
+    pixelcolor::{self, BinaryColor},
+    prelude::{Point, Primitive},
+    primitives::Rectangle,
+    style::{self, PrimitiveStyleBuilder},
+};
+use hal::{
+    gpio::{Input, PullUp},
+    i2c::I2c,
+};
 use mocca_matrix::{bitzet::Bitzet, prelude::*};
+use numtoa::NumToA;
+use ssd1306::{
+    displaysize::DisplaySize, mode::GraphicsMode, prelude::WriteOnlyDataCommand, I2CDIBuilder,
+};
 use stm32l4xx_hal as hal;
 use ws2812_spi as ws2812;
 #[macro_use]
@@ -24,6 +40,39 @@ extern crate cortex_m_semihosting as sh;
 extern crate panic_semihosting;
 use bitset_core::BitSet;
 use mocca_matrix::math::Vec2;
+
+trait Console {
+    fn write(&mut self, t: &str);
+}
+
+impl<DI, DSIZE> Console for GraphicsMode<DI, DSIZE>
+where
+    DSIZE: DisplaySize,
+    DI: WriteOnlyDataCommand,
+{
+    fn write(&mut self, t: &str) {
+        // self.clear();
+        let style = PrimitiveStyleBuilder::new()
+            .stroke_width(1)
+            .stroke_color(BinaryColor::Off)
+            .fill_color(BinaryColor::Off)
+            .build();
+
+        Rectangle::new(Point::new(0, 0), Point::new(127, 15))
+            .into_styled(style)
+            .draw(self)
+            .unwrap();
+        fonts::Text::new(t, Point::zero())
+            .into_styled(style::TextStyle::new(
+                fonts::Font6x8,
+                pixelcolor::BinaryColor::On,
+            ))
+            .draw(self)
+            .unwrap();
+        self.flush().unwrap();
+    }
+}
+
 #[entry]
 fn main() -> ! {
     if let (Some(p), Some(cp)) = (stm32::Peripherals::take(), Peripherals::take()) {
@@ -43,6 +92,27 @@ fn main() -> ! {
         // Get delay provider
         let mut delay = Delay::new(cp.SYST, clocks);
 
+        let mut gpiob = p.GPIOB.split(&mut rcc.ahb2);
+        let mut scl = gpiob
+            .pb6
+            .into_open_drain_output(&mut gpiob.moder, &mut gpiob.otyper);
+        scl.internal_pull_up(&mut gpiob.pupdr, true);
+        let scl = scl.into_af4(&mut gpiob.moder, &mut gpiob.afrl);
+        let mut sda = gpiob
+            .pb7
+            .into_open_drain_output(&mut gpiob.moder, &mut gpiob.otyper);
+        sda.internal_pull_up(&mut gpiob.pupdr, true);
+        let sda = sda.into_af4(&mut gpiob.moder, &mut gpiob.afrl);
+
+        let i2c = I2c::i2c1(p.I2C1, (scl, sda), 100.khz(), clocks, &mut rcc.apb1r1);
+
+        let interface = I2CDIBuilder::new().init(i2c);
+        let mut disp: GraphicsMode<_, _> = ssd1306::Builder::new().connect(interface).into();
+
+        disp.init().unwrap();
+        disp.flush().unwrap();
+
+        disp.write("Init!");
         // Configure pins for SPI
         let (sck, miso, mosi) = cortex_m::interrupt::free(move |cs| {
             (
@@ -65,6 +135,7 @@ fn main() -> ! {
         let button = gpioc
             .pc13
             .into_pull_up_input(&mut gpioc.moder, &mut gpioc.pupdr);
+
         let mut ws = Ws2812::new(spi);
         let mut data = [RGB8::new(0, 0, 0); NUM_LEDS];
         let mut rainbow = Rainbow::step(13);
@@ -74,7 +145,9 @@ fn main() -> ! {
         delay.delay_ms(200u8);
         ws.write(brightness(data.iter().cloned(), 0)).unwrap();
         // button_wait_debounced(&button, &mut delay);
-        run(&mut ws, &mut delay, &button);
+
+        disp.write("Run!");
+        run(&mut ws, &mut delay, &button, &mut disp);
         let mut data = [RGB8::new(255, 0, 0); NUM_LEDS];
         ws.write(brightness(data.iter().cloned(), 32)).unwrap();
     }
@@ -108,6 +181,7 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
     ws: &mut WS,
     delay: &mut Delay,
     button: &dyn InputPin<Error = Infallible>,
+    console: &mut Console,
 ) -> Result<(), mocca_matrix::Error> {
     type BitzetN = Bitzet<128>;
     let mut data = [RGB8::default(); NUM_LEDS];
@@ -226,6 +300,14 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
 
             if !hold_mode {
                 black = black_new;
+
+                {
+                    let mut num_buffer = [0u8; 20];
+                    let mut text = ArrayString::<[_; 100]>::new();
+                    text.push_str("num: ");
+                    text.push_str(black.len().numtoa_str(10, &mut num_buffer));
+                    console.write(&text);
+                }
             }
             keep_on.fill(0);
             if warp_mode {
