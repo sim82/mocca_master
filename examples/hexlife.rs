@@ -82,9 +82,9 @@ fn main() -> ! {
         let mut pwr = p.PWR.constrain(&mut rcc.apb1r1);
         let clocks = rcc // full speed (64 & 80MHz) use the 16MHZ HSI osc + PLL (but slower / intermediate values need MSI)
             .cfgr
-            .sysclk(80.mhz())
-            .pclk1(80.mhz())
-            .pclk2(80.mhz())
+            .sysclk(64.mhz())
+            .pclk1(16.mhz())
+            .pclk2(64.mhz())
             .freeze(&mut flash.acr, &mut pwr);
 
         let mut gpioa = p.GPIOA.split(&mut rcc.ahb2);
@@ -104,7 +104,7 @@ fn main() -> ! {
         sda.internal_pull_up(&mut gpiob.pupdr, true);
         let sda = sda.into_af4(&mut gpiob.moder, &mut gpiob.afrl);
 
-        let i2c = I2c::i2c1(p.I2C1, (scl, sda), 100.khz(), clocks, &mut rcc.apb1r1);
+        let i2c = I2c::i2c1(p.I2C1, (scl, sda), 400.khz(), clocks, &mut rcc.apb1r1);
 
         let interface = I2CDIBuilder::new().init(i2c);
         let mut disp: GraphicsMode<_, _> = ssd1306::Builder::new().connect(interface).into();

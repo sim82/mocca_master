@@ -9,6 +9,7 @@ pub mod effects;
 pub mod hex;
 pub mod math;
 pub use stm32l4xx_hal as hal;
+pub mod os;
 
 pub mod setup {
 
@@ -101,9 +102,9 @@ pub mod setup {
             let mut pwr = p.PWR.constrain(&mut rcc.apb1r1);
             let clocks = rcc // full speed (64 & 80MHz) use the 16MHZ HSI osc + PLL (but slower / intermediate values need MSI)
                 .cfgr
-                .sysclk(80.mhz())
-                .pclk1(80.mhz())
-                .pclk2(80.mhz())
+                .sysclk(64.mhz())
+                .pclk1(16.mhz())
+                .pclk2(64.mhz())
                 .freeze(&mut flash.acr, &mut pwr);
 
             let gpioa = p.GPIOA.split(&mut rcc.ahb2);
@@ -286,6 +287,7 @@ pub mod canvas {
         fn clear(&mut self);
         fn line(&mut self, a: hex::Cube, b: hex::Cube, color: RGB8);
         fn apply(&mut self);
+        fn data(&mut self) -> &mut [RGB8; NUM_LEDS];
     }
 
     impl<WS: smart_leds::SmartLedsWrite<Color = RGB8>> Canvas for (WS, [RGB8; NUM_LEDS]) {
@@ -295,12 +297,18 @@ pub mod canvas {
             }
         }
         fn apply(&mut self) {
+            // cortex_m::interrupt::free(|cs| {
             self.0
                 .write(smart_leds::brightness(self.1.iter().cloned(), 32));
+            // self.0.write(self.1.iter().cloned());
+            // });
         }
 
         fn clear(&mut self) {
             self.1.fill(color::BLACK);
+        }
+        fn data(&mut self) -> &mut [RGB8; NUM_LEDS] {
+            &mut self.1
         }
     }
 }

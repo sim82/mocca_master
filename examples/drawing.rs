@@ -88,6 +88,11 @@ fn main() -> ! {
         //         periphery.delay.delay_ms(200u8);
         //     }
         // }
+        // loop {
+        //     canvas.data().fill(RGB8::default());
+        //     canvas.apply();
+        //     periphery.delay.delay_ms(8u8);
+        // }
 
         loop {
             for i in 0..360 / 6 {
@@ -106,8 +111,9 @@ fn main() -> ! {
 
                 canvas.line(v0.into(), v.into(), color::GREEN);
 
+                // canvas.data()[1] = RGB8::default();
                 canvas.apply();
-                periphery.delay.delay_ms(250u8);
+                // periphery.delay.delay_ms(8u8);
                 // let v =
             }
         }
