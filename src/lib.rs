@@ -264,6 +264,11 @@ pub mod color {
         g: 255,
         b: 255,
     };
+    pub const CYAN50: RGB8 = RGB8 {
+        r: 0,
+        g: 127,
+        b: 127,
+    };
     pub const MAGENTA: RGB8 = RGB8 {
         r: 255,
         g: 0,
@@ -273,6 +278,11 @@ pub mod color {
         r: 255,
         g: 255,
         b: 0,
+    };
+    pub const WHITE: RGB8 = RGB8 {
+        r: 255,
+        g: 255,
+        b: 255,
     };
 }
 
@@ -312,6 +322,38 @@ pub mod canvas {
         }
     }
 }
+
+pub fn rgb8_to_power(c: &RGB8) -> u32 {
+    let tmp = c.r as u32 + c.g as u32 + c.b as u32;
+    tmp * 12 / 255
+}
+
+pub fn estimate_current(data: &[RGB8; NUM_LEDS]) -> [u32; 4] {
+    let start0 = 0;
+    let size0 = 8 + 9 + 10 + 11 + 15 + 16 + 17;
+    let start1 = size0;
+    let size1 = 17 + 17 + 17 + 17;
+    let start2 = start1 + size1;
+    let size2 = 17 + 17 + 17 + 17;
+    let start3 = start2 + size2;
+    let size3 = 16 + 15 + 11 + 10 + 9 + 8;
+    let end3 = start3 + size3;
+    assert!(size0 + size1 + size2 + size3 == 291);
+
+    let zones = [start0..start1, start1..start2, start2..start3, start3..end3];
+
+    let mut out = [0; 4];
+    for (i, range) in zones.iter().enumerate() {
+        out[i] = 78
+            + data[range.clone()]
+                .iter()
+                .map(|c| rgb8_to_power(c))
+                .sum::<u32>();
+    }
+
+    out
+}
+
 pub mod prelude {
     pub use super::{
         canvas::Canvas, color::Rainbow, effects, get_matrix, hal, io::button_wait_debounced,

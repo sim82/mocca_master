@@ -66,7 +66,7 @@ where
             None => 0,
         };
 
-        Rectangle::new(Point::new(0, y), Point::new(127, y + 15))
+        Rectangle::new(Point::new(0, y), Point::new(127, y + 7))
             .into_styled(style)
             .draw(self)
             .unwrap();

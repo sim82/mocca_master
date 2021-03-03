@@ -28,20 +28,21 @@ struct TestSched {
 impl Schedule for TestSched {
     fn run(&mut self, interface: &mut dyn Interface) {
         // let mut text = String::<U32>::new();
-        let text: String<U32> = "012345678901234567890".into();
+        // let text: String<U32> = "012345678901234567890".into();
 
-        for i in (0..8) {
-            interface.console().write(&text, Some(i));
-        }
+        let mut text = String::<U32>::new();
+        // for i in (0..8) {
+        //     interface.console().write(&text, Some(i));
+        // }
 
-        // write!(&mut text, "num: {}", self.i).unwrap();
+        write!(&mut text, "num: {}", self.i).unwrap();
 
         // // let mut num_buffer = [0u8; 20];
         // // // let mut text = ArrayString::<[_; 100]>::new();
         // // text.push_str("num: ");
         // // // text.push_str(self.i.numtoa_str(10, &mut num_buffer));
         // // // text.push_str(self.i.into());
-        // interface.console().write(&text, Some(self.line));
+        interface.console().write(&text, Some(self.line));
 
         // write!(interface.console(), "meeep {}", self.i).unwrap();
 
@@ -89,16 +90,16 @@ impl Schedule for Radar {
 #[entry]
 fn main() -> ! {
     mocca_matrix::os::enter(&mut [
-        // &mut TestSched {
-        //     i: 0,
-        //     timing: 4,
-        //     line: 0,
-        // },
-        // &mut TestSched {
-        //     i: 0,
-        //     timing: 20,
-        //     line: 1,
-        // },
+        &mut TestSched {
+            i: 0,
+            timing: 4,
+            line: 3,
+        },
+        &mut TestSched {
+            i: 0,
+            timing: 20,
+            line: 4,
+        },
         &mut Radar {
             i: 0,
             colors: Rainbow::step(5),

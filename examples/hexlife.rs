@@ -40,38 +40,39 @@ extern crate cortex_m_semihosting as sh;
 extern crate panic_semihosting;
 use bitset_core::BitSet;
 use mocca_matrix::math::Vec2;
+use mocca_matrix::os::Console;
 
-trait Console {
-    fn write(&mut self, t: &str);
-}
+// trait Console {
+//     fn write(&mut self, t: &str);
+// }
 
-impl<DI, DSIZE> Console for GraphicsMode<DI, DSIZE>
-where
-    DSIZE: DisplaySize,
-    DI: WriteOnlyDataCommand,
-{
-    fn write(&mut self, t: &str) {
-        // self.clear();
-        let style = PrimitiveStyleBuilder::new()
-            .stroke_width(1)
-            .stroke_color(BinaryColor::Off)
-            .fill_color(BinaryColor::Off)
-            .build();
+// impl<DI, DSIZE> Console for GraphicsMode<DI, DSIZE>
+// where
+//     DSIZE: DisplaySize,
+//     DI: WriteOnlyDataCommand,
+// {
+//     fn write(&mut self, t: &str) {
+//         // self.clear();
+//         let style = PrimitiveStyleBuilder::new()
+//             .stroke_width(1)
+//             .stroke_color(BinaryColor::Off)
+//             .fill_color(BinaryColor::Off)
+//             .build();
 
-        Rectangle::new(Point::new(0, 0), Point::new(127, 15))
-            .into_styled(style)
-            .draw(self)
-            .unwrap();
-        fonts::Text::new(t, Point::zero())
-            .into_styled(style::TextStyle::new(
-                fonts::Font6x8,
-                pixelcolor::BinaryColor::On,
-            ))
-            .draw(self)
-            .unwrap();
-        self.flush().unwrap();
-    }
-}
+//         Rectangle::new(Point::new(0, 0), Point::new(127, 15))
+//             .into_styled(style)
+//             .draw(self)
+//             .unwrap();
+//         fonts::Text::new(t, Point::zero())
+//             .into_styled(style::TextStyle::new(
+//                 fonts::Font6x8,
+//                 pixelcolor::BinaryColor::On,
+//             ))
+//             .draw(self)
+//             .unwrap();
+//         self.flush().unwrap();
+//     }
+// }
 
 #[entry]
 fn main() -> ! {
@@ -112,7 +113,7 @@ fn main() -> ! {
         disp.init().unwrap();
         disp.flush().unwrap();
 
-        disp.write("Init!");
+        disp.write("Init!", None);
         // Configure pins for SPI
         let (sck, miso, mosi) = cortex_m::interrupt::free(move |cs| {
             (
@@ -146,7 +147,7 @@ fn main() -> ! {
         ws.write(brightness(data.iter().cloned(), 0)).unwrap();
         // button_wait_debounced(&button, &mut delay);
 
-        disp.write("Run!");
+        disp.write("Run!", None);
         run(&mut ws, &mut delay, &button, &mut disp);
         let mut data = [RGB8::new(255, 0, 0); NUM_LEDS];
         ws.write(brightness(data.iter().cloned(), 32)).unwrap();
@@ -275,7 +276,7 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
     loop {
         let warp_mode = false; //button.is_low().unwrap();
         let hold_mode = false; //button.is_low().unwrap();
-        if i % 25 == 0 || warp_mode {
+        if i % 100 == 0 || warp_mode {
             let mut black_new = Bitzet::new();
 
             for v in black.iter() {
@@ -306,7 +307,7 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
                     let mut text = ArrayString::<[_; 100]>::new();
                     text.push_str("num: ");
                     text.push_str(black.len().numtoa_str(10, &mut num_buffer));
-                    console.write(&text);
+                    console.write(&text, Some(0));
                 }
             }
             keep_on.fill(0);
@@ -335,7 +336,17 @@ fn run<WS: SmartLedsWrite<Color = RGB8, Error = hal::spi::Error>>(
                 }
             }
         }
-        ws.write(brightness(data.iter().cloned(), 16)).unwrap();
+
+        let current = mocca_matrix::estimate_current(&data);
+
+        for (i, c) in current.iter().enumerate() {
+            let mut num_buffer = [0u8; 20];
+            let mut text = ArrayString::<[_; 100]>::new();
+            text.push_str(c.numtoa_str(10, &mut num_buffer));
+            console.write(&text, Some((i + 1) as i32));
+        }
+
+        ws.write(brightness(data.iter().cloned(), 255)).unwrap();
     }
     Ok(())
 }
